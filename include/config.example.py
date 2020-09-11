@@ -2,6 +2,8 @@
 LOGIN_API = 'https://app.cupl.edu.cn/uc/wap/login/check'
 REPORT_PAGE = 'https://app.cupl.edu.cn/ncov/wap/default/index'
 REPORT_API = 'https://app.cupl.edu.cn/ncov/wap/default/save'
+REPORT_PAGE_CWWJ = 'https://app.cupl.edu.cn/xisuncov/wap/open-report/index'
+REPORT_API_CWWJ = 'https://app.cupl.edu.cn/xisuncov/wap/open-report/save'
 API_TIMEOUT = 20 # in seconds
 
 CRON_TIMEZONE = 'Asia/Shanghai'
