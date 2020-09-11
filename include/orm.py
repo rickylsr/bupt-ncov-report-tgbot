@@ -130,8 +130,106 @@ class BUPTUser(BaseModel):
             return report_api_resp.text.strip()
         else:
             raise Exception(report_api_resp.text.strip())
-        
+        def ncov_checkin(self, force=False):
+        if not force:
+            self.check_status()
+        session = requests.Session()
+        if self.cookie_eaisess != None:
+            cookies={
+                'eai-sess': self.cookie_eaisess,
+                'UUKey': self.cookie_uukey
+            }
+            requests.utils.add_dict_to_cookiejar(session.cookies, cookies)
 
+        report_page_resp = session.get(REPORT_PAGE, allow_redirects=False, timeout=API_TIMEOUT,verify=False)
+        _logger.debug(f'[report page] status: {report_page_resp.status_code}')
+        if report_page_resp.status_code == 302:
+            if self.username != None:
+                session = self.login()
+            else:
+                # TODO: warning status update
+                self.status = BUPTUserStatus.warning
+                self.save()
+                raise RuntimeWarning(f'Cookies expired with no login info set. Please update your cookie. \neai-sess:`{self.cookie_eaisess}`')
+            report_page_resp = session.get(REPORT_PAGE, allow_redirects=False, timeout=API_TIMEOUT,verify=False)
+        if report_page_resp.status_code != 200:
+            RuntimeError(f'Report Page returned {report_page_resp.status_code}.')
+
+        page_html = report_page_resp.text
+        assert 'realname' in page_html, "报告页面返回信息不正确"
+
+        # 从上报页面中提取 POST 的参数
+        post_data = extract_post_data(page_html)
+        self.latest_data = json.dumps(post_data)
+        self.save()
+        _logger.debug(f'[report api] Final data: {json.dumps(post_data)}')
+
+        # 最终 POST
+        report_api_resp = session.post(REPORT_API, post_data,
+            headers={'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}, 
+            timeout=API_TIMEOUT
+        )
+        assert report_api_resp.status_code == 200, "提交 API 状态异常"
+        self.latest_response_data = report_api_resp.text.strip()
+        self.latest_response_time = datetime.datetime.now()
+        self.save()
+
+        if report_api_resp.json()['e'] == 0:
+            return report_api_resp.text.strip()
+        else:
+            raise Exception(report_api_resp.text.strip())
+
+            
+   def ncov_cwwj_checkin(self, force=False):
+        if not force:
+            self.check_status()
+        session = requests.Session()
+        if self.cookie_eaisess != None:
+            cookies={
+                'eai-sess': self.cookie_eaisess,
+                'UUKey': self.cookie_uukey
+            }
+            requests.utils.add_dict_to_cookiejar(session.cookies, cookies)
+
+        report_page_resp = session.get(REPORT_PAGE_CWWJ, allow_redirects=False, timeout=API_TIMEOUT,verify=False)
+        _logger.debug(f'[report page] status: {report_page_resp.status_code}')
+        if report_page_resp.status_code == 302:
+            if self.username != None:
+                session = self.login()
+            else:
+                # TODO: warning status update
+                self.status = BUPTUserStatus.warning
+                self.save()
+                raise RuntimeWarning(f'Cookies expired with no login info set. Please update your cookie. \neai-sess:`{self.cookie_eaisess}`')
+            report_page_resp = session.get(REPORT_PAGE_CWWJ, allow_redirects=False, timeout=API_TIMEOUT,verify=False)
+        if report_page_resp.status_code != 200:
+            RuntimeError(f'Report Page returned {report_page_resp.status_code}.')
+
+        page_html = report_page_resp.text
+        assert 'realname' in page_html, "报告页面返回信息不正确"
+
+        # 从上报页面中提取 POST 的参数
+        post_data = extract_post_data(page_html)
+        self.latest_data = json.dumps(post_data)
+        self.save()
+        _logger.debug(f'[report api] Final data: {json.dumps(post_data)}')
+
+        # 最终 POST
+        report_api_resp = session.post(REPORT_API_CWWJ, post_data,
+            headers={'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}, 
+            timeout=API_TIMEOUT
+        )
+        assert report_api_resp.status_code == 200, "提交 API 状态异常"
+        self.latest_response_data = report_api_resp.text.strip()
+        self.latest_response_time = datetime.datetime.now()
+        self.save()
+
+        if report_api_resp.json()['e'] == 0:
+            return report_api_resp.text.strip()
+        else:
+            raise Exception(report_api_resp.text.strip())
+            
+            
 def db_init():
     database_proxy.connect()
     database_proxy.create_tables([TGUser,BUPTUser])
